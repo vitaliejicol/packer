@@ -20,15 +20,41 @@ import (
 // This config exists to work around modern operating systems that have no
 // way to mount floppy disks, which was our previous go-to for adding files at
 // boot time.
-//
-// It may not work for all installers. For example, in debian the preseed file
-// needs to be remastered inside the installation iso, which is outside the
-// scope of this tool
 type CDConfig struct {
 	// A list of files to place onto a CD that is attached when the VM is
 	// booted. This can include either files or directories; any directories
 	// will be copied onto the CD recursively, preserving directory structure
-	// hierarchy. Symlinks will be ignored.
+	// hierarchy. Symlinks will have the link's target copied into the directory
+	// tree on the CD where the symlink was. File globbing is allowed.
+	//
+	// Usage example (JSON):
+	//
+	// ```json
+	// "cd_files": ["./somedirectory/meta-data", "./somedirectory/user-data"],
+	// "cd_label": "cidata",
+	// ```json
+	//
+	// Usage example (HCL):
+	//
+	// ```hcl
+	// cd_files = ["./somedirectory/meta-data", "./somedirectory/user-data"]
+	// cd_label = "cidata"
+	// ```
+	//
+	// The above will create a CD with two files, user-data and meta-data in the
+	// CD root. This specific example is how you would create a CD that can be
+	// used for an Ubuntu 20.04 autoinstall.
+	//
+	// Since globbing is also supported,
+	//
+	// ```hcl
+	// cd_files = ["./somedirectory/*"]
+	// cd_label = "cidata"
+	// ```
+	//
+	// Would also be an acceptable way to define the above cd. The difference
+	// between providing the directory with or without the glob is whether the
+	// directory itself or its contents will be at the CD root.
 	CDFiles []string `mapstructure:"cd_files"`
 	CDLabel string   `mapstructure:"cd_label"`
 }
@@ -41,15 +67,23 @@ func (c *CDConfig) Prepare(ctx *interpolate.Context) []error {
 		c.CDFiles = make([]string, 0)
 	}
 
+	// Create new file list based on globbing.
+	var files []string
 	for _, path := range c.CDFiles {
 		if strings.ContainsAny(path, "*?[") {
-			_, err = filepath.Glob(path)
+			var globbedFiles []string
+			globbedFiles, err = filepath.Glob(path)
+			if len(globbedFiles) > 0 {
+				files = append(files, globbedFiles...)
+			}
 		} else {
 			_, err = os.Stat(path)
+			files = append(files, path)
 		}
 		if err != nil {
 			errs = append(errs, fmt.Errorf("Bad CD disk file '%s': %s", path, err))
 		}
+		c.CDFiles = files
 	}
 
 	return errs

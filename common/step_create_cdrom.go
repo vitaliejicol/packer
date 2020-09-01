@@ -64,6 +64,7 @@ func (s *StepCreateCD) Run(ctx context.Context, state multistep.StateBag) multis
 			fmt.Errorf("Error creating temporary file for CD: %s", err))
 		return multistep.ActionHalt
 	}
+
 	for _, toAdd := range s.Files {
 		err = AddFile(rootFolder, toAdd)
 		if err != nil {
