@@ -25,6 +25,8 @@ type StepCreateCD struct {
 	Label string
 
 	CDPath string
+
+	filesAdded map[string]bool
 }
 
 func (s *StepCreateCD) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
@@ -42,6 +44,9 @@ func (s *StepCreateCD) Run(ctx context.Context, state multistep.StateBag) multis
 		log.Printf("CD label is set to %s", s.Label)
 	}
 
+	// Track what files are added. Used for testing step.
+	s.filesAdded = make(map[string]bool)
+
 	// Create a temporary file to be our CD drive
 	CDF, err := tmp.File("packer*.iso")
 	// Set the path so we can remove it later
@@ -55,6 +60,7 @@ func (s *StepCreateCD) Run(ctx context.Context, state multistep.StateBag) multis
 	}
 
 	log.Printf("CD path: %s", CDPath)
+	s.CDPath = CDPath
 
 	// Consolidate all files provided into a single directory to become our
 	// "root" directory.
@@ -66,7 +72,7 @@ func (s *StepCreateCD) Run(ctx context.Context, state multistep.StateBag) multis
 	}
 
 	for _, toAdd := range s.Files {
-		err = AddFile(rootFolder, toAdd)
+		err = s.AddFile(rootFolder, toAdd)
 		if err != nil {
 			state.Put("error",
 				fmt.Errorf("Error creating temporary file for CD: %s", err))
@@ -91,8 +97,7 @@ func (s *StepCreateCD) Run(ctx context.Context, state multistep.StateBag) multis
 		return multistep.ActionHalt
 	}
 
-	return multistep.ActionHalt
-	// return multistep.ActionContinue
+	return multistep.ActionContinue
 }
 
 func (s *StepCreateCD) Cleanup(multistep.StateBag) {
@@ -123,7 +128,7 @@ func retrieveCommandForOS(label string, source string, dest string) *exec.Cmd {
 	}
 }
 
-func AddFile(dst, src string) error {
+func (s *StepCreateCD) AddFile(dst, src string) error {
 	finfo, err := os.Stat(src)
 	if err != nil {
 		return fmt.Errorf("Error adding path to CD: %s", err)
@@ -146,6 +151,7 @@ func AddFile(dst, src string) error {
 		if err != nil {
 			return fmt.Errorf("Error copying %s to CD root", src)
 		}
+		s.filesAdded[src] = true
 		log.Printf("Wrote %d bytes to %s", nBytes, finfo.Name())
 		return err
 	}
@@ -172,6 +178,7 @@ func AddFile(dst, src string) error {
 			if err != nil {
 				return fmt.Errorf("Error copying %s to CD", src)
 			}
+			s.filesAdded[pathname] = true
 			log.Printf("Wrote %d bytes to %s", nBytes, pathname)
 			return err
 		}
