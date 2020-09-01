@@ -244,7 +244,6 @@ func (s *stepCreateVMX) Run(ctx context.Context, state multistep.StateBag) multi
 	// Add our custom CD, if it exists
 	cd_path, ok := state.Get("cd_path").(string)
 	if ok {
-		log.Printf("Megan cd_path is %s", cd_path)
 		if cd_path != "" {
 			vmxTemplate += ExtraCDRomTemplate
 			templateData.CDROM_PATH = cd_path
