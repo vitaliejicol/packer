@@ -120,7 +120,6 @@ func retrieveCommandForOS(label string, source string, dest string) *exec.Cmd {
 		cmd.Args = append(cmd.Args, args...)
 		return cmd
 	}
-	return nil
 }
 
 func AddFile(dst, src string) error {
