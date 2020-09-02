@@ -30,6 +30,9 @@ func testStepCreateCDState(t *testing.T) multistep.StateBag {
 }
 
 func TestStepCreateCD(t *testing.T) {
+	if os.Getenv("PACKER_ACC") == "" {
+		t.Skip("This test is only run with PACKER_ACC=1 due to the requirement of access to the disk management binaries.")
+	}
 	state := testStepCreateCDState(t)
 	step := new(StepCreateCD)
 
@@ -81,6 +84,9 @@ func TestStepCreateCD(t *testing.T) {
 }
 
 func TestStepCreateCD_missing(t *testing.T) {
+	if os.Getenv("PACKER_ACC") == "" {
+		t.Skip("This test is only run with PACKER_ACC=1 due to the requirement of access to the disk management binaries.")
+	}
 	state := testStepCreateCDState(t)
 	step := new(StepCreateCD)
 
