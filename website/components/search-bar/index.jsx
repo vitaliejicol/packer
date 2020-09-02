@@ -13,7 +13,7 @@ export default function SearchBar() {
           </span>
         </>
       )}
-      placeholder="Search Nomad documentation"
+      placeholder="Search Packer documentation"
     />
   )
 }
